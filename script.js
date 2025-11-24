@@ -1,0 +1,1637 @@
+// Gestion des données de la procédure de consignation
+class ConsignmentProcedure {
+    constructor() {
+        this.data = {
+            info: {},
+            warnings: {
+                dangers: []
+            },
+            materials: [],
+            epiEpc: [],
+            references: [],
+            steps: [],
+            improvements: []
+        };
+        this.epiEpcSuggestions = this.initEpiEpcSuggestions();
+        this.dangerSuggestions = this.initDangerSuggestions();
+        this.initMarked();
+        this.init();
+    }
+    
+    initDangerSuggestions() {
+        return [
+            { name: 'Tension électrique', color: 'tension-electrique', requiresValue: true, unit: 'V', pictogram: 'DANGER-electricite.jpg' },
+            { name: 'Air comprimé', color: 'air-comprime', requiresValue: true, unit: 'bar', pictogram: 'DANGER-general.jpg' },
+            { name: 'Pression hydraulique', color: 'pression-hydraulique', requiresValue: true, unit: 'bar', pictogram: 'DANGER-general.jpg' },
+            { name: 'Instabilité mécanique', color: 'instabilite-mecanique', requiresValue: false, pictogram: 'DANGER-general.jpg' },
+            { name: 'Travail en hauteur', color: 'hauteur', requiresValue: true, unit: 'm', pictogram: 'DANGER-chute.jpg' },
+            { name: 'Risque d\'électrocution', color: 'tension-electrique', requiresValue: false, pictogram: 'DANGER-electricite.jpg' },
+            { name: 'Risque de chute', color: 'hauteur', requiresValue: false, pictogram: 'DANGER-chute.jpg' },
+            { name: 'Projection de particules', color: 'instabilite-mecanique', requiresValue: false, pictogram: 'DANGER-general.jpg' },
+            { name: 'Écrasement', color: 'instabilite-mecanique', requiresValue: false, pictogram: 'DANGER-charge-suspendue.jpg' },
+            { name: 'Coupure', color: 'instabilite-mecanique', requiresValue: false, pictogram: 'DANGER-general.jpg' },
+            { name: 'Température élevée', color: 'autre', requiresValue: true, unit: '°C', pictogram: 'DANGER-general.jpg' },
+            { name: 'Produit chimique', color: 'autre', requiresValue: false, pictogram: 'DANGER-produit-nocif.jpg' },
+            { name: 'Rayonnement', color: 'autre', requiresValue: false, pictogram: 'DANGER-radiations-non-ionisantes.jpg' },
+            { name: 'Bruit excessif', color: 'autre', requiresValue: true, unit: 'dB', pictogram: 'DANGER-general.jpg' },
+            { name: 'Espace confiné', color: 'autre', requiresValue: false, pictogram: 'DANGER-general.jpg' },
+            { name: 'Atmosphère explosive', color: 'autre', requiresValue: false, pictogram: 'DANGER-atmosphere-explosive.jpg' },
+            { name: 'Froid / Gel', color: 'autre', requiresValue: true, unit: '°C', pictogram: 'DANGER-froid-gel.jpg' },
+            { name: 'Charge suspendue', color: 'instabilite-mecanique', requiresValue: false, pictogram: 'DANGER-charge-suspendue.jpg' },
+            { name: 'Chariot élévateur', color: 'instabilite-mecanique', requiresValue: false, pictogram: 'DANGER-chariot.jpg' },
+            { name: 'Laser', color: 'autre', requiresValue: false, pictogram: 'DANGER-laser.jpg' },
+            { name: 'Produit corrosif', color: 'autre', requiresValue: false, pictogram: 'DANGER-produit-corrosif.jpg' },
+            { name: 'Produit explosif', color: 'autre', requiresValue: false, pictogram: 'DANGER-produit-explosif.jpg' },
+            { name: 'Produit inflammable', color: 'autre', requiresValue: false, pictogram: 'DANGER-produit-inflammable.jpg' },
+            { name: 'Produit toxique', color: 'autre', requiresValue: false, pictogram: 'DANGER-produit-toxique.jpg' },
+            { name: 'Risque biologique', color: 'autre', requiresValue: false, pictogram: 'DANGER-risque-biologique.jpg' },
+            { name: 'Radioactivité', color: 'autre', requiresValue: false, pictogram: 'DANGER-radioactivite.jpg' },
+            { name: 'Champ magnétique', color: 'autre', requiresValue: false, pictogram: 'DANGER-champ-magnetique.jpg' },
+            { name: 'Trébuchement', color: 'hauteur', requiresValue: false, pictogram: 'DANGER-trebuchement.jpg' }
+        ];
+    }
+    
+    // Mapping EPI/EPC names to pictogram files
+    getEpiEpcPictogram(name) {
+        const lowerName = name.toLowerCase();
+        const pictogramMap = {
+            'casque': 'OBLIGATION-casque.jpg',
+            'casque isolant': 'OBLIGATION-casque.jpg',
+            'casque de chantier': 'OBLIGATION-casque.jpg',
+            'casque antibruit': 'OBLIGATION-casque-antibruit.jpg',
+            'protections auditives': 'OBLIGATION-casque-antibruit.jpg',
+            'lunettes': 'OBLIGATION-lunettes.jpg',
+            'lunettes isolantes': 'OBLIGATION-lunettes.jpg',
+            'lunettes de protection': 'OBLIGATION-lunettes.jpg',
+            'gants': 'OBLIGATION-gants.jpg',
+            'gants isolants': 'OBLIGATION-gants.jpg',
+            'gants anti-coupure': 'OBLIGATION-gants.jpg',
+            'gants de manutention': 'OBLIGATION-gants.jpg',
+            'chaussures': 'OBLIGATION-chaussures.jpg',
+            'chaussures de sécurité': 'OBLIGATION-chaussures.jpg',
+            'chaussures isolantes': 'OBLIGATION-chaussures.jpg',
+            'harnais': 'OBLIGATION-harnais.jpg',
+            'harnais de sécurité': 'OBLIGATION-harnais.jpg',
+            'visière': 'OBLIGATION-visiere.jpg',
+            'écran facial': 'OBLIGATION-visiere.jpg',
+            'écran facial isolant': 'OBLIGATION-visiere.jpg',
+            'masque': 'OBLIGATION-protection-voies-espiratoires.jpg',
+            'masque respiratoire': 'OBLIGATION-protection-voies-espiratoires.jpg',
+            'combinaison': 'OBLIGATION-combinaison.jpg',
+            'vêtements isolants': 'OBLIGATION-combinaison.jpg',
+            'vêtements de travail': 'OBLIGATION-combinaison.jpg',
+            'gilet': 'OBLIGATION-general.jpg',
+            'gilet haute visibilité': 'OBLIGATION-general.jpg'
+        };
+        
+        // Try exact match first
+        if (pictogramMap[lowerName]) {
+            return pictogramMap[lowerName];
+        }
+        
+        // Try partial match
+        for (const [key, value] of Object.entries(pictogramMap)) {
+            if (lowerName.includes(key) || key.includes(lowerName)) {
+                return value;
+            }
+        }
+        
+        return 'OBLIGATION-general.jpg';
+    }
+    
+    // Get danger pictogram based on danger name
+    getDangerPictogram(dangerName) {
+        const suggestion = this.dangerSuggestions.find(d => d.name === dangerName);
+        if (suggestion && suggestion.pictogram) {
+            return suggestion.pictogram;
+        }
+        return 'DANGER-general.jpg';
+    }
+    
+    initMarked() {
+        // Configure marked.js for security
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false
+            });
+            
+            // Use DOMPurify-like sanitization
+            marked.use({
+                useNewRenderer: true,
+                renderer: {
+                    html(html) {
+                        // Return empty string for HTML tags to prevent XSS
+                        return '';
+                    }
+                }
+            });
+        }
+    }
+    
+    initEpiEpcSuggestions() {
+        return {
+            'EPI': {
+                'électrique': [
+                    'Casque isolant',
+                    'Lunettes isolantes',
+                    'Gants isolants',
+                    'Écran facial isolant',
+                    'Vêtements isolants',
+                    'Chaussures isolantes'
+                ],
+                'mécanique': [
+                    'Casque de chantier',
+                    'Lunettes de protection',
+                    'Gants anti-coupure',
+                    'Protections auditives',
+                    'Masque respiratoire',
+                    'Harnais de sécurité'
+                ],
+                'commun': [
+                    'Chaussures de sécurité',
+                    'Gilet haute visibilité',
+                    'Vêtements de travail',
+                    'Gants de manutention'
+                ]
+            },
+            'EPC': {
+                'électrique': [
+                    'Appareil de test VAT',
+                    'Tapis isolant',
+                    'Nappe isolante',
+                    'Cadenas de consignation électrique',
+                    'Dispositif de mise à la terre',
+                    'Pancarte de consignation'
+                ],
+                'mécanique': [
+                    'Protecteur de machine',
+                    'Garde-corps',
+                    'Filet de sécurité',
+                    'Barrières de protection',
+                    'Barre de consignation'
+                ],
+                'commun': [
+                    'Serrure de consignation',
+                    'Barrières de sécurité',
+                    'Signalisation de sécurité',
+                    'Extincteur',
+                    'Trousse de premiers secours',
+                    'Éclairage de sécurité'
+                ]
+            }
+        };
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.loadFromStorage();
+        this.updateDisplay();
+    }
+
+    setupEventListeners() {
+        // Informations sur l'intervention
+        const infoFields = ['titre', 'description', 'date', 'numero', 'personnel', 'localisation'];
+        infoFields.forEach(field => {
+            const element = document.getElementById(field);
+            if (element) {
+                element.addEventListener('change', () => this.saveInfo());
+                element.addEventListener('input', () => this.saveInfo());
+            }
+        });
+        
+        // EPI/EPC suggestions
+        const epiEpcInput = document.getElementById('epi-epc-input');
+        if (epiEpcInput) {
+            epiEpcInput.addEventListener('input', (e) => this.handleEpiEpcInput(e));
+            epiEpcInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const firstSuggestion = document.querySelector('.suggestion-item');
+                    if (firstSuggestion) {
+                        firstSuggestion.click();
+                    } else {
+                        // Add custom entry if no suggestions
+                        const customValue = epiEpcInput.value.trim();
+                        if (customValue) {
+                            this.addEpiEpc(customValue, 'Personnalisé', 'personnalisé');
+                            epiEpcInput.value = '';
+                            this.hideSuggestions();
+                        }
+                    }
+                } else if (e.key === 'Escape') {
+                    this.hideSuggestions();
+                }
+            });
+        }
+        
+        // Close suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+            const container = document.querySelector('.epi-epc-input-container');
+            if (container && !container.contains(e.target)) {
+                this.hideSuggestions();
+            }
+        });
+        
+        // Danger suggestions
+        const dangerInput = document.getElementById('danger-input');
+        if (dangerInput) {
+            dangerInput.addEventListener('input', (e) => this.handleDangerInput(e));
+            dangerInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const firstSuggestion = document.querySelector('#danger-suggestions .suggestion-item');
+                    if (firstSuggestion) {
+                        firstSuggestion.click();
+                    } else {
+                        // Add custom danger
+                        const customValue = dangerInput.value.trim();
+                        if (customValue) {
+                            this.addDanger(customValue, 'autre', false);
+                            dangerInput.value = '';
+                            this.hideDangerSuggestions();
+                        }
+                    }
+                } else if (e.key === 'Escape') {
+                    this.hideDangerSuggestions();
+                }
+            });
+        }
+        
+        // Close danger suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+            const dangerContainer = document.querySelector('.danger-input-container');
+            if (dangerContainer && !dangerContainer.contains(e.target)) {
+                this.hideDangerSuggestions();
+            }
+        });
+        
+        // Avertissements with markdown support (only for analyse-risques now)
+        const analyseRisques = document.getElementById('analyse-risques');
+        if (analyseRisques) {
+            analyseRisques.addEventListener('change', () => this.saveWarnings());
+            analyseRisques.addEventListener('input', () => {
+                this.saveWarnings();
+                this.updateMarkdownPreview('analyse-risques');
+            });
+        }
+
+        // Matériel nécessaire
+        document.getElementById('add-material-btn').addEventListener('click', () => this.addMaterial());
+        ['new-material-designation', 'new-material-quantity', 'new-material-price'].forEach(id => {
+            document.getElementById(id).addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.addMaterial();
+            });
+        });
+
+        // Références
+        document.getElementById('add-reference-btn').addEventListener('click', () => this.addReference());
+        document.getElementById('sort-references-btn').addEventListener('click', () => this.sortReferences());
+        ['new-reference-document', 'new-reference-page', 'new-reference-type'].forEach(id => {
+            document.getElementById(id).addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.addReference();
+            });
+        });
+
+        // Instructions de consignation
+        document.getElementById('add-step-btn').addEventListener('click', () => this.addStep());
+
+        // Pistes d'amélioration
+        document.getElementById('add-improvement-btn').addEventListener('click', () => this.addImprovement());
+        document.getElementById('new-improvement').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addImprovement();
+        });
+
+        // Actions principales
+        document.getElementById('save-btn').addEventListener('click', () => this.saveToFile());
+        document.getElementById('load-btn').addEventListener('click', () => this.loadFromFile());
+        document.getElementById('print-btn').addEventListener('click', () => this.generatePDF());
+        document.getElementById('clear-btn').addEventListener('click', () => this.clearAll());
+    }
+
+    saveInfo() {
+        this.data.info = {
+            titre: document.getElementById('titre').value,
+            description: document.getElementById('description').value,
+            date: document.getElementById('date').value,
+            numero: document.getElementById('numero').value,
+            personnel: document.getElementById('personnel').value,
+            localisation: document.getElementById('localisation').value
+        };
+        this.saveToStorage();
+    }
+    
+    handleEpiEpcInput(e) {
+        const query = e.target.value.toLowerCase().trim();
+        const suggestionsDiv = document.getElementById('epi-epc-suggestions');
+        
+        if (query.length < 2) {
+            this.hideSuggestions();
+            return;
+        }
+        
+        const matches = [];
+        Object.keys(this.epiEpcSuggestions).forEach(type => {
+            Object.keys(this.epiEpcSuggestions[type]).forEach(category => {
+                this.epiEpcSuggestions[type][category].forEach(item => {
+                    if (item.toLowerCase().includes(query)) {
+                        matches.push({ type, category, name: item });
+                    }
+                });
+            });
+        });
+        
+        if (matches.length > 0) {
+            this.showSuggestions(matches);
+        } else {
+            this.hideSuggestions();
+        }
+    }
+    
+    showSuggestions(matches) {
+        const suggestionsDiv = document.getElementById('epi-epc-suggestions');
+        suggestionsDiv.innerHTML = '';
+        
+        // Group by type and category
+        const grouped = {};
+        matches.forEach(match => {
+            const key = `${match.type}-${match.category}`;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    type: match.type,
+                    category: match.category,
+                    items: []
+                };
+            }
+            grouped[key].items.push(match.name);
+        });
+        
+        Object.values(grouped).forEach(group => {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'suggestion-category';
+            categoryDiv.textContent = `${group.type} - ${group.category}`;
+            suggestionsDiv.appendChild(categoryDiv);
+            
+            group.items.forEach(itemName => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'suggestion-item';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'suggestion-name';
+                nameSpan.textContent = itemName;
+                
+                const badgesDiv = document.createElement('div');
+                badgesDiv.className = 'suggestion-badges';
+                
+                const typeBadge = document.createElement('span');
+                typeBadge.className = `badge badge-${group.type.toLowerCase()}`;
+                typeBadge.textContent = group.type;
+                
+                const catBadge = document.createElement('span');
+                catBadge.className = `badge badge-${group.category}`;
+                catBadge.textContent = group.category;
+                
+                badgesDiv.appendChild(typeBadge);
+                badgesDiv.appendChild(catBadge);
+                
+                itemDiv.appendChild(nameSpan);
+                itemDiv.appendChild(badgesDiv);
+                
+                itemDiv.addEventListener('click', () => {
+                    this.addEpiEpc(itemName, group.type, group.category);
+                    document.getElementById('epi-epc-input').value = '';
+                    this.hideSuggestions();
+                });
+                
+                suggestionsDiv.appendChild(itemDiv);
+            });
+        });
+        
+        suggestionsDiv.classList.add('show');
+    }
+    
+    hideSuggestions() {
+        const suggestionsDiv = document.getElementById('epi-epc-suggestions');
+        suggestionsDiv.classList.remove('show');
+    }
+    
+    addEpiEpc(name, type, category) {
+        // Check if already added
+        const exists = this.data.epiEpc.find(item => item.name === name);
+        if (exists) {
+            this.showNotification('⚠️ Cet équipement est déjà dans la liste', 'info');
+            return;
+        }
+        
+        this.data.epiEpc.push({ name, type, category });
+        this.updateEpiEpcList();
+        this.saveToStorage();
+    }
+    
+    removeEpiEpc(index) {
+        this.data.epiEpc.splice(index, 1);
+        this.updateEpiEpcList();
+        this.saveToStorage();
+    }
+    
+    updateEpiEpcList() {
+        const list = document.getElementById('epi-epc-list');
+        list.innerHTML = '';
+        
+        this.data.epiEpc.forEach((item, index) => {
+            const tag = document.createElement('div');
+            tag.className = 'epi-epc-tag';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tag-name';
+            nameSpan.textContent = item.name;
+            
+            const badgesDiv = document.createElement('div');
+            badgesDiv.className = 'suggestion-badges';
+            
+            const typeBadge = document.createElement('span');
+            typeBadge.className = `badge badge-${item.type.toLowerCase()}`;
+            typeBadge.textContent = item.type;
+            
+            const catBadge = document.createElement('span');
+            catBadge.className = `badge badge-${item.category}`;
+            catBadge.textContent = item.category;
+            
+            badgesDiv.appendChild(typeBadge);
+            badgesDiv.appendChild(catBadge);
+            
+            const removeSpan = document.createElement('span');
+            removeSpan.className = 'tag-remove';
+            removeSpan.textContent = '×';
+            removeSpan.onclick = () => this.removeEpiEpc(index);
+            
+            tag.appendChild(nameSpan);
+            tag.appendChild(badgesDiv);
+            tag.appendChild(removeSpan);
+            list.appendChild(tag);
+        });
+    }
+    
+    handleDangerInput(e) {
+        const query = e.target.value.toLowerCase().trim();
+        
+        if (query.length < 2) {
+            this.hideDangerSuggestions();
+            return;
+        }
+        
+        const matches = this.dangerSuggestions.filter(danger => 
+            danger.name.toLowerCase().includes(query)
+        );
+        
+        if (matches.length > 0) {
+            this.showDangerSuggestions(matches);
+        } else {
+            this.hideDangerSuggestions();
+        }
+    }
+    
+    showDangerSuggestions(matches) {
+        const suggestionsDiv = document.getElementById('danger-suggestions');
+        suggestionsDiv.innerHTML = '';
+        
+        matches.forEach(danger => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'suggestion-item';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'suggestion-name';
+            nameSpan.textContent = danger.name;
+            
+            itemDiv.appendChild(nameSpan);
+            
+            itemDiv.addEventListener('click', () => {
+                if (danger.requiresValue) {
+                    const value = prompt(`Valeur pour "${danger.name}" (${danger.unit}):`);
+                    this.addDanger(danger.name, danger.color, danger.requiresValue, value ? `${value} ${danger.unit}` : null);
+                } else {
+                    this.addDanger(danger.name, danger.color, danger.requiresValue);
+                }
+                document.getElementById('danger-input').value = '';
+                this.hideDangerSuggestions();
+            });
+            
+            suggestionsDiv.appendChild(itemDiv);
+        });
+        
+        suggestionsDiv.classList.add('show');
+    }
+    
+    hideDangerSuggestions() {
+        const suggestionsDiv = document.getElementById('danger-suggestions');
+        suggestionsDiv.classList.remove('show');
+    }
+    
+    addDanger(name, color, hasValue, value = null) {
+        // Check if already added
+        const exists = this.data.warnings.dangers.find(item => item.name === name && item.value === value);
+        if (exists) {
+            this.showNotification('⚠️ Ce danger est déjà dans la liste', 'info');
+            return;
+        }
+        
+        this.data.warnings.dangers.push({ name, color, value });
+        this.updateDangerList();
+        this.saveToStorage();
+    }
+    
+    removeDanger(index) {
+        this.data.warnings.dangers.splice(index, 1);
+        this.updateDangerList();
+        this.saveToStorage();
+    }
+    
+    updateDangerList() {
+        const list = document.getElementById('danger-list');
+        list.innerHTML = '';
+        
+        this.data.warnings.dangers.forEach((danger, index) => {
+            const tag = document.createElement('div');
+            tag.className = `danger-tag ${danger.color}`;
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'danger-tag-name';
+            nameSpan.textContent = danger.name;
+            tag.appendChild(nameSpan);
+            
+            if (danger.value) {
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'danger-tag-value';
+                valueSpan.textContent = danger.value;
+                tag.appendChild(valueSpan);
+            }
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'danger-tag-remove';
+            removeBtn.textContent = '×';
+            removeBtn.onclick = () => this.removeDanger(index);
+            tag.appendChild(removeBtn);
+            
+            list.appendChild(tag);
+        });
+    }
+    
+    updateMarkdownPreview(fieldId) {
+        const textarea = document.getElementById(fieldId);
+        const preview = document.getElementById(`${fieldId}-preview`);
+        
+        if (!textarea || !preview) return;
+        
+        const text = textarea.value;
+        if (!text.trim()) {
+            preview.classList.remove('show');
+            return;
+        }
+        
+        // Use marked.js if available, otherwise fallback to simple parsing
+        if (typeof marked !== 'undefined') {
+            try {
+                preview.innerHTML = marked.parse(text);
+                preview.classList.add('show');
+            } catch (error) {
+                console.error('Error parsing markdown:', error);
+                preview.textContent = text;
+                preview.classList.add('show');
+            }
+        } else {
+            // Fallback to simple text display if marked.js is not loaded
+            preview.textContent = text;
+            preview.classList.add('show');
+        }
+    }
+
+    saveWarnings() {
+        this.data.warnings.analyseRisques = document.getElementById('analyse-risques').value;
+        // dangers are saved automatically when added/removed
+        this.saveToStorage();
+    }
+
+    addMaterial() {
+        const designation = document.getElementById('new-material-designation').value.trim();
+        const quantity = parseInt(document.getElementById('new-material-quantity').value) || 1;
+        const price = parseFloat(document.getElementById('new-material-price').value) || 0;
+        
+        if (!designation) {
+            this.showNotification('⚠️ Veuillez entrer une désignation', 'error');
+            return;
+        }
+        
+        this.data.materials.push({
+            designation,
+            quantity,
+            price
+        });
+        
+        document.getElementById('new-material-designation').value = '';
+        document.getElementById('new-material-quantity').value = '1';
+        document.getElementById('new-material-price').value = '';
+        
+        this.updateMaterialList();
+        this.saveToStorage();
+    }
+
+    removeMaterial(index) {
+        this.data.materials.splice(index, 1);
+        this.updateMaterialList();
+        this.saveToStorage();
+    }
+
+    updateMaterialList() {
+        const tbody = document.getElementById('material-table-body');
+        tbody.innerHTML = '';
+        
+        let total = 0;
+        
+        this.data.materials.forEach((material, index) => {
+            const row = document.createElement('div');
+            row.className = 'material-row';
+            
+            const designationDiv = document.createElement('div');
+            designationDiv.textContent = material.designation;
+            
+            const quantityDiv = document.createElement('div');
+            quantityDiv.textContent = material.quantity;
+            
+            const priceDiv = document.createElement('div');
+            priceDiv.textContent = `${material.price.toFixed(2)} €`;
+            
+            const totalDiv = document.createElement('div');
+            const itemTotal = material.quantity * material.price;
+            totalDiv.textContent = `${itemTotal.toFixed(2)} €`;
+            total += itemTotal;
+            
+            const actionsDiv = document.createElement('div');
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger btn-small';
+            deleteBtn.textContent = 'Supprimer';
+            deleteBtn.onclick = () => this.removeMaterial(index);
+            actionsDiv.appendChild(deleteBtn);
+            
+            row.appendChild(designationDiv);
+            row.appendChild(quantityDiv);
+            row.appendChild(priceDiv);
+            row.appendChild(totalDiv);
+            row.appendChild(actionsDiv);
+            
+            tbody.appendChild(row);
+        });
+        
+        document.getElementById('material-total').innerHTML = `<strong>${total.toFixed(2)} €</strong>`;
+    }
+
+    addStep() {
+        // Use crypto.randomUUID with a robust fallback
+        let id;
+        if (crypto.randomUUID) {
+            id = crypto.randomUUID();
+        } else {
+            // Fallback: combine timestamp with counter for better uniqueness
+            if (!this._stepCounter) this._stepCounter = 0;
+            id = `step-${Date.now()}-${++this._stepCounter}`;
+        }
+        
+        const step = {
+            id: id,
+            repere: '',
+            instruction: '',
+            photo: ''
+        };
+        this.data.steps.push(step);
+        this.updateStepsList();
+        this.saveToStorage();
+    }
+
+    removeStep(id) {
+        this.data.steps = this.data.steps.filter(step => step.id !== id);
+        this.updateStepsList();
+        this.saveToStorage();
+    }
+    
+    moveStep(index, direction) {
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= this.data.steps.length) return;
+        
+        // Swap the steps
+        const temp = this.data.steps[index];
+        this.data.steps[index] = this.data.steps[newIndex];
+        this.data.steps[newIndex] = temp;
+        
+        this.updateStepsList();
+        this.saveToStorage();
+    }
+
+    addReference() {
+        const documentName = document.getElementById('new-reference-document').value.trim();
+        const page = document.getElementById('new-reference-page').value.trim();
+        const type = document.getElementById('new-reference-type').value;
+        
+        if (!documentName) {
+            this.showNotification('⚠️ Veuillez entrer un nom de document', 'error');
+            return;
+        }
+        
+        if (!type) {
+            this.showNotification('⚠️ Veuillez sélectionner un type', 'error');
+            return;
+        }
+        
+        this.data.references.push({
+            document: documentName,
+            page,
+            type
+        });
+        
+        document.getElementById('new-reference-document').value = '';
+        document.getElementById('new-reference-page').value = '';
+        document.getElementById('new-reference-type').value = '';
+        
+        this.updateReferenceList();
+        this.saveToStorage();
+    }
+
+    removeReference(index) {
+        this.data.references.splice(index, 1);
+        this.updateReferenceList();
+        this.saveToStorage();
+    }
+    
+    sortReferences() {
+        this.data.references.sort((a, b) => {
+            return a.document.localeCompare(b.document, 'fr', { sensitivity: 'base' });
+        });
+        this.updateReferenceList();
+        this.saveToStorage();
+        this.showNotification('✅ Références triées par ordre alphabétique', 'success');
+    }
+
+    updateReferenceList() {
+        const tbody = document.getElementById('reference-table-body');
+        tbody.innerHTML = '';
+        
+        this.data.references.forEach((reference, index) => {
+            const row = document.createElement('div');
+            row.className = 'reference-row';
+            
+            const documentDiv = document.createElement('div');
+            documentDiv.textContent = reference.document;
+            
+            const pageDiv = document.createElement('div');
+            pageDiv.textContent = reference.page || '-';
+            
+            const typeDiv = document.createElement('div');
+            typeDiv.textContent = reference.type;
+            
+            const actionsDiv = document.createElement('div');
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger btn-small';
+            deleteBtn.textContent = 'Supprimer';
+            deleteBtn.onclick = () => this.removeReference(index);
+            actionsDiv.appendChild(deleteBtn);
+            
+            row.appendChild(documentDiv);
+            row.appendChild(pageDiv);
+            row.appendChild(typeDiv);
+            row.appendChild(actionsDiv);
+            
+            tbody.appendChild(row);
+        });
+    }
+
+
+    updateStepData(id, field, value) {
+        const step = this.data.steps.find(s => s.id === id);
+        if (step) {
+            step[field] = value;
+            this.saveToStorage();
+        }
+    }
+
+    handlePhotoUpload(id, file) {
+        if (file && file.type.startsWith('image/')) {
+            // Limit file size to 2MB to avoid localStorage issues
+            const maxSize = 2 * 1024 * 1024; // 2MB
+            if (file.size > maxSize) {
+                this.showNotification('❌ La photo est trop grande. Taille maximale: 2MB', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.updateStepData(id, 'photo', e.target.result);
+                this.updateStepsList();
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    updateStepsList() {
+        const tbody = document.getElementById('instructions-body');
+        tbody.innerHTML = '';
+        
+        this.data.steps.forEach((step, index) => {
+            const row = document.createElement('div');
+            row.className = 'step-row';
+            
+            // Column: Repere
+            const colRepere = document.createElement('div');
+            colRepere.className = 'col-repere';
+            const inputRepere = document.createElement('input');
+            inputRepere.type = 'text';
+            inputRepere.placeholder = `Repère ${index + 1}`;
+            inputRepere.value = step.repere;
+            inputRepere.onchange = (e) => this.updateStepData(step.id, 'repere', e.target.value);
+            colRepere.appendChild(inputRepere);
+            
+            // Column: Instruction
+            const colInstruction = document.createElement('div');
+            colInstruction.className = 'col-instruction';
+            const textareaInstruction = document.createElement('textarea');
+            textareaInstruction.placeholder = "Description de l'instruction...";
+            textareaInstruction.value = step.instruction;
+            textareaInstruction.onchange = (e) => this.updateStepData(step.id, 'instruction', e.target.value);
+            colInstruction.appendChild(textareaInstruction);
+            
+            // Column: Photo
+            const colPhoto = document.createElement('div');
+            colPhoto.className = 'col-photo';
+            const photoUpload = document.createElement('div');
+            photoUpload.className = 'photo-upload';
+            
+            if (step.photo) {
+                // Validate that photo is a data URL before using it
+                if (step.photo.startsWith('data:image/')) {
+                    const img = document.createElement('img');
+                    img.src = step.photo;
+                    img.className = 'photo-preview';
+                    img.alt = 'Photo';
+                    photoUpload.appendChild(img);
+                }
+            }
+            
+            const label = document.createElement('label');
+            label.className = 'photo-label';
+            label.textContent = `📷 ${step.photo && step.photo.startsWith('data:image/') ? 'Changer' : 'Ajouter'} photo`;
+            const inputFile = document.createElement('input');
+            inputFile.type = 'file';
+            inputFile.accept = 'image/*';
+            inputFile.onchange = (e) => this.handlePhotoUpload(step.id, e.target.files[0]);
+            label.appendChild(inputFile);
+            photoUpload.appendChild(label);
+            colPhoto.appendChild(photoUpload);
+            
+            // Actions
+            const stepActions = document.createElement('div');
+            stepActions.className = 'step-actions';
+            
+            // Reorder buttons
+            const reorderBtns = document.createElement('div');
+            reorderBtns.className = 'step-reorder-buttons';
+            
+            const btnUp = document.createElement('button');
+            btnUp.className = 'btn btn-secondary btn-small btn-reorder';
+            btnUp.textContent = '⬆️';
+            btnUp.title = 'Monter';
+            btnUp.disabled = index === 0;
+            btnUp.onclick = () => this.moveStep(index, -1);
+            
+            const btnDown = document.createElement('button');
+            btnDown.className = 'btn btn-secondary btn-small btn-reorder';
+            btnDown.textContent = '⬇️';
+            btnDown.title = 'Descendre';
+            btnDown.disabled = index === this.data.steps.length - 1;
+            btnDown.onclick = () => this.moveStep(index, 1);
+            
+            reorderBtns.appendChild(btnUp);
+            reorderBtns.appendChild(btnDown);
+            stepActions.appendChild(reorderBtns);
+            
+            const btnDelete = document.createElement('button');
+            btnDelete.className = 'btn btn-danger btn-small';
+            btnDelete.textContent = '🗑️ Supprimer l\'étape';
+            btnDelete.onclick = () => this.removeStep(step.id);
+            stepActions.appendChild(btnDelete);
+            
+            // Append all columns
+            row.appendChild(colRepere);
+            row.appendChild(colInstruction);
+            row.appendChild(colPhoto);
+            row.appendChild(stepActions);
+            tbody.appendChild(row);
+        });
+    }
+
+    addImprovement() {
+        const input = document.getElementById('new-improvement');
+        const improvement = input.value.trim();
+        
+        if (improvement) {
+            this.data.improvements.push(improvement);
+            input.value = '';
+            this.updateImprovementList();
+            this.saveToStorage();
+        }
+    }
+
+    removeImprovement(index) {
+        this.data.improvements.splice(index, 1);
+        this.updateImprovementList();
+        this.saveToStorage();
+    }
+
+    updateImprovementList() {
+        const list = document.getElementById('improvement-list');
+        list.innerHTML = '';
+        
+        this.data.improvements.forEach((improvement, index) => {
+            const li = document.createElement('li');
+            const span = document.createElement('span');
+            span.textContent = improvement;
+            
+            const button = document.createElement('button');
+            button.className = 'btn btn-danger btn-small';
+            button.textContent = 'Supprimer';
+            button.onclick = () => this.removeImprovement(index);
+            
+            li.appendChild(span);
+            li.appendChild(button);
+            list.appendChild(li);
+        });
+    }
+
+    updateDisplay() {
+        // Charger les informations
+        if (this.data.info) {
+            document.getElementById('titre').value = this.data.info.titre || '';
+            document.getElementById('description').value = this.data.info.description || '';
+            document.getElementById('date').value = this.data.info.date || '';
+            document.getElementById('numero').value = this.data.info.numero || '';
+            document.getElementById('personnel').value = this.data.info.personnel || '';
+            document.getElementById('localisation').value = this.data.info.localisation || '';
+        }
+
+        // Charger les avertissements
+        if (this.data.warnings) {
+            document.getElementById('analyse-risques').value = this.data.warnings.analyseRisques || '';
+            
+            // Update markdown preview
+            this.updateMarkdownPreview('analyse-risques');
+        }
+
+        // Afficher les listes
+        this.updateEpiEpcList();
+        this.updateDangerList();
+        this.updateMaterialList();
+        this.updateReferenceList();
+        this.updateStepsList();
+        this.updateImprovementList();
+    }
+
+    saveToStorage() {
+        try {
+            localStorage.setItem('consignmentProcedure', JSON.stringify(this.data));
+        } catch (e) {
+            console.error('Erreur lors de la sauvegarde:', e);
+            this.showNotification('⚠️ Impossible de sauvegarder automatiquement. Utilisez le bouton Enregistrer.', 'error');
+        }
+    }
+
+    loadFromStorage() {
+        try {
+            const saved = localStorage.getItem('consignmentProcedure');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // Validate data structure
+                if (parsed && typeof parsed === 'object') {
+                    // Handle backward compatibility for warnings structure
+                    let warnings = parsed.warnings || {};
+                    if (!warnings.dangers) {
+                        warnings.dangers = [];
+                    }
+                    
+                    this.data = {
+                        info: parsed.info || {},
+                        warnings: warnings,
+                        materials: Array.isArray(parsed.materials) ? parsed.materials : [],
+                        epiEpc: Array.isArray(parsed.epiEpc) ? parsed.epiEpc : [],
+                        references: Array.isArray(parsed.references) ? parsed.references : [],
+                        steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+                        improvements: Array.isArray(parsed.improvements) ? parsed.improvements : []
+                    };
+                }
+            }
+        } catch (e) {
+            console.error('Erreur lors du chargement:', e);
+            this.showNotification('⚠️ Impossible de charger les données sauvegardées.', 'error');
+        }
+    }
+
+    saveToFile() {
+        const dataStr = JSON.stringify(this.data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        // Sanitize filename to prevent invalid characters (only alphanumeric and underscore)
+        const sanitizedNumero = (this.data.info.numero || 'procedure').replace(/[^a-z0-9_]/gi, '_');
+        link.download = `consignation-${sanitizedNumero}-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        URL.revokeObjectURL(url);
+        
+        this.showNotification('✅ Procédure enregistrée avec succès!', 'success');
+    }
+
+    loadFromFile() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const parsed = JSON.parse(event.target.result);
+                        // Validate data structure before loading
+                        if (parsed && typeof parsed === 'object') {
+                            // Handle backward compatibility for warnings structure
+                            let warnings = parsed.warnings || {};
+                            if (!warnings.dangers) {
+                                warnings.dangers = [];
+                            }
+                            
+                            this.data = {
+                                info: parsed.info || {},
+                                warnings: warnings,
+                                materials: Array.isArray(parsed.materials) ? parsed.materials : [],
+                                epiEpc: Array.isArray(parsed.epiEpc) ? parsed.epiEpc : [],
+                                references: Array.isArray(parsed.references) ? parsed.references : [],
+                                steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+                                improvements: Array.isArray(parsed.improvements) ? parsed.improvements : []
+                            };
+                            this.updateDisplay();
+                            this.saveToStorage();
+                            this.showNotification('✅ Procédure chargée avec succès!', 'success');
+                        } else {
+                            this.showNotification('❌ Format de fichier invalide', 'error');
+                        }
+                    } catch (error) {
+                        this.showNotification('❌ Erreur lors du chargement du fichier', 'error');
+                        console.error('Erreur:', error);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+        input.click();
+    }
+
+    clearAll() {
+        if (confirm('⚠️ Êtes-vous sûr de vouloir effacer toutes les données? Cette action est irréversible.')) {
+            this.data = {
+                info: {},
+                warnings: {
+                    dangers: []
+                },
+                materials: [],
+                epiEpc: [],
+                references: [],
+                steps: [],
+                improvements: []
+            };
+            this.updateDisplay();
+            this.saveToStorage();
+            this.showNotification('🗑️ Toutes les données ont été effacées', 'info');
+        }
+    }
+    
+    // Helper to load an image as base64
+    loadImageAsBase64(src) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                try {
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
+                } catch (e) {
+                    reject(e);
+                }
+            };
+            img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+            img.src = src;
+        });
+    }
+    
+    // Preload all needed pictograms for PDF
+    async preloadPictograms() {
+        const pictograms = {};
+        
+        // Collect all unique pictograms needed
+        const obligationPictograms = new Set();
+        const dangerPictograms = new Set();
+        
+        // EPI/EPC pictograms
+        if (this.data.epiEpc) {
+            this.data.epiEpc.forEach(item => {
+                const picto = this.getEpiEpcPictogram(item.name);
+                obligationPictograms.add(picto);
+            });
+        }
+        
+        // Danger pictograms
+        if (this.data.warnings.dangers) {
+            this.data.warnings.dangers.forEach(danger => {
+                const picto = this.getDangerPictogram(danger.name);
+                dangerPictograms.add(picto);
+            });
+        }
+        
+        // Load obligation pictograms
+        for (const picto of obligationPictograms) {
+            try {
+                const base64 = await this.loadImageAsBase64(`resources/Pictogrammes_jpeg/OBLIGATION/${picto}`);
+                pictograms[`OBLIGATION/${picto}`] = base64;
+            } catch (e) {
+                console.warn(`Could not load pictogram: ${picto}`);
+            }
+        }
+        
+        // Load danger pictograms
+        for (const picto of dangerPictograms) {
+            try {
+                const base64 = await this.loadImageAsBase64(`resources/Pictogrammes_jpeg/AVERTISSEMENT_DANGER/${picto}`);
+                pictograms[`DANGER/${picto}`] = base64;
+            } catch (e) {
+                console.warn(`Could not load pictogram: ${picto}`);
+            }
+        }
+        
+        return pictograms;
+    }
+    
+    async generatePDF() {
+        // Check if jsPDF is available
+        if (typeof jspdf === 'undefined' || !jspdf.jsPDF) {
+            this.showNotification('❌ Erreur: jsPDF non disponible. Utilisation de l\'impression navigateur.', 'error');
+            window.print();
+            return;
+        }
+        
+        try {
+            // Show loading notification
+            this.showNotification('📄 Génération du PDF en cours...', 'info');
+            
+            // Preload pictograms
+            const pictograms = await this.preloadPictograms();
+            
+            const { jsPDF } = jspdf;
+            const doc = new jsPDF();
+            
+            // Use Times New Roman for formal appearance
+            doc.setFont("times", "normal");
+            
+            let y = 20;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const margin = 20;
+            const contentWidth = pageWidth - 2 * margin;
+            const pictoSize = 8; // Size of pictogram in mm
+            
+            // Title - Black, formal
+            doc.setFontSize(18);
+            doc.setFont("times", "bold");
+            doc.setTextColor(0, 0, 0);
+            doc.text('Procédure de Consignation', pageWidth / 2, y, { align: 'center' });
+            y += 10;
+            
+            doc.setFontSize(10);
+            doc.setFont("times", "italic");
+            doc.text('Documentation de sécurité pour intervention', pageWidth / 2, y, { align: 'center' });
+            y += 15;
+            
+            // Section: Informations sur l'intervention
+            doc.setFontSize(12);
+            doc.setFont("times", "bold");
+            doc.setTextColor(0, 51, 102); // Dark blue
+            doc.text('Informations sur l\'intervention', margin, y);
+            y += 8;
+            
+            doc.setFontSize(10);
+            doc.setFont("times", "normal");
+            doc.setTextColor(0, 0, 0);
+            
+            if (this.data.info.titre) {
+                doc.setFont("times", "bold");
+                doc.text(`Titre: `, margin, y);
+                doc.setFont("times", "normal");
+                doc.text(this.data.info.titre, margin + 20, y);
+                y += 6;
+            }
+            
+            if (this.data.info.description) {
+                doc.setFont("times", "bold");
+                doc.text('Description: ', margin, y);
+                y += 6;
+                doc.setFont("times", "normal");
+                const descLines = doc.splitTextToSize(this.data.info.description, contentWidth - 20);
+                doc.text(descLines, margin + 10, y);
+                y += descLines.length * 5 + 2;
+            }
+            
+            if (this.data.info.date || this.data.info.numero || this.data.info.personnel || this.data.info.localisation) {
+                const infoText = [];
+                if (this.data.info.date) infoText.push(`Date: ${this.data.info.date}`);
+                if (this.data.info.numero) infoText.push(`Numéro: ${this.data.info.numero}`);
+                if (this.data.info.personnel) infoText.push(`Personnel: ${this.data.info.personnel}`);
+                if (this.data.info.localisation) infoText.push(`Localisation: ${this.data.info.localisation}`);
+                doc.text(infoText.join(' | '), margin, y);
+                y += 8;
+            }
+            
+            // EPI/EPC
+            if (this.data.epiEpc && this.data.epiEpc.length > 0) {
+                doc.setFont("times", "bold");
+                doc.text('EPI/EPC requis: ', margin, y);
+                y += 8;
+                doc.setFont("times", "normal");
+                
+                this.data.epiEpc.forEach(item => {
+                    // Color code by category
+                    const categoryColorMap = {
+                        'electrique': [234, 179, 8], // yellow
+                        'électrique': [234, 179, 8], // yellow
+                        'mecanique': [146, 64, 14], // brown
+                        'mécanique': [146, 64, 14], // brown
+                        'commun': [220, 38, 38], // red
+                        'personnalisé': [99, 102, 241] // indigo
+                    };
+                    
+                    // Try to add pictogram
+                    const pictoFile = this.getEpiEpcPictogram(item.name);
+                    const pictoKey = `OBLIGATION/${pictoFile}`;
+                    if (pictograms[pictoKey]) {
+                        try {
+                            doc.addImage(pictograms[pictoKey], 'JPEG', margin + 5, y - 5, pictoSize, pictoSize);
+                        } catch (e) {
+                            console.warn('Failed to add pictogram:', e);
+                        }
+                    }
+                    
+                    const rgb = categoryColorMap[item.category.toLowerCase()] || [100, 116, 139];
+                    doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+                    doc.text(`${item.name} (${item.type} - ${item.category})`, margin + 5 + pictoSize + 3, y);
+                    doc.setTextColor(0, 0, 0);
+                    y += Math.max(pictoSize, 5) + 2;
+                    
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                });
+                y += 3;
+            }
+            
+            y += 5;
+            
+            // Section: Avertissements
+            if (y > 250) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            doc.setFontSize(12);
+            doc.setFont("times", "bold");
+            doc.setTextColor(153, 0, 0); // Dark red
+            doc.text('Avertissements', margin, y);
+            y += 8;
+            
+            doc.setFontSize(10);
+            doc.setTextColor(0, 0, 0);
+            
+            // Render dangers with colored tags and pictograms
+            if (this.data.warnings.dangers && this.data.warnings.dangers.length > 0) {
+                doc.setFont("times", "bold");
+                doc.text('Dangers identifiés:', margin, y);
+                y += 8;
+                doc.setFont("times", "normal");
+                
+                this.data.warnings.dangers.forEach(danger => {
+                    // Map color classes to RGB values for PDF
+                    const colorMap = {
+                        'tension-electrique': [234, 179, 8], // yellow
+                        'air-comprime': [6, 182, 212], // cyan
+                        'pression-hydraulique': [139, 92, 246], // purple
+                        'instabilite-mecanique': [249, 115, 22], // orange
+                        'hauteur': [239, 68, 68], // red
+                        'autre': [100, 116, 139] // gray
+                    };
+                    
+                    // Try to add pictogram
+                    const pictoFile = this.getDangerPictogram(danger.name);
+                    const pictoKey = `DANGER/${pictoFile}`;
+                    if (pictograms[pictoKey]) {
+                        try {
+                            doc.addImage(pictograms[pictoKey], 'JPEG', margin + 5, y - 5, pictoSize, pictoSize);
+                        } catch (e) {
+                            console.warn('Failed to add danger pictogram:', e);
+                        }
+                    }
+                    
+                    const rgb = colorMap[danger.color] || [100, 116, 139];
+                    doc.setTextColor(rgb[0], rgb[1], rgb[2]);
+                    doc.setFont("times", "bold");
+                    
+                    const dangerText = danger.value ? `${danger.name}: ${danger.value}` : danger.name;
+                    doc.text(dangerText, margin + 5 + pictoSize + 3, y);
+                    y += Math.max(pictoSize, 5) + 2;
+                    
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont("times", "normal");
+                    
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                });
+                y += 3;
+            }
+            
+            if (this.data.warnings.analyseRisques) {
+                doc.setFont("times", "bold");
+                doc.setTextColor(0, 0, 0);
+                doc.text('Analyse de risques:', margin, y);
+                y += 6;
+                doc.setFont("times", "normal");
+                
+                // Multi-level markdown to plain text conversion for PDF
+                let analysisText = this.data.warnings.analyseRisques;
+                
+                const lines = analysisText.split('\n');
+                lines.forEach(line => {
+                    // Calculate indentation level (2 spaces = 1 level, or tab)
+                    const leadingSpaces = line.match(/^(\s*)/)[1].length;
+                    const indentLevel = Math.floor(leadingSpaces / 2);
+                    const trimmed = line.trim();
+                    
+                    // Base indent from margin
+                    const baseIndent = margin + 5;
+                    // Additional indent per level (5 units per level)
+                    const levelIndent = indentLevel * 5;
+                    const currentIndent = baseIndent + levelIndent;
+                    
+                    // Choose bullet character based on level
+                    const bulletChars = ['•', '◦', '▪', '▫', '-'];
+                    const bullet = bulletChars[Math.min(indentLevel, bulletChars.length - 1)];
+                    
+                    if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+                        // Bullet point
+                        const content = trimmed.substring(1).trim();
+                        // Remove markdown bold markers
+                        const cleanContent = content.replace(/\*\*(.*?)\*\*/g, '$1');
+                        const textLines = doc.splitTextToSize(cleanContent, contentWidth - 20 - levelIndent);
+                        doc.text(`${bullet} ${textLines[0]}`, currentIndent, y);
+                        y += 5;
+                        // Handle wrapped lines
+                        for (let i = 1; i < textLines.length; i++) {
+                            doc.text(textLines[i], currentIndent + 4, y);
+                            y += 5;
+                        }
+                    } else if (trimmed.match(/^\d+\./)) {
+                        // Numbered list
+                        const content = trimmed.replace(/^\d+\./, '').trim();
+                        const cleanContent = content.replace(/\*\*(.*?)\*\*/g, '$1');
+                        const number = trimmed.match(/^\d+\./)[0];
+                        const textLines = doc.splitTextToSize(cleanContent, contentWidth - 20 - levelIndent);
+                        doc.text(`${number} ${textLines[0]}`, currentIndent, y);
+                        y += 5;
+                        // Handle wrapped lines
+                        for (let i = 1; i < textLines.length; i++) {
+                            doc.text(textLines[i], currentIndent + 6, y);
+                            y += 5;
+                        }
+                    } else if (trimmed) {
+                        // Regular paragraph
+                        const cleanContent = trimmed.replace(/\*\*(.*?)\*\*/g, '$1');
+                        const textLines = doc.splitTextToSize(cleanContent, contentWidth - 20 - levelIndent);
+                        doc.text(textLines, currentIndent, y);
+                        y += textLines.length * 5 + 2;
+                    }
+                    
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                });
+                y += 3;
+            }
+            
+            y += 5;
+            
+            // Section: Matériel nécessaire
+            if (this.data.materials && this.data.materials.length > 0) {
+                if (y > 250) {
+                    doc.addPage();
+                    y = 20;
+                }
+                
+                doc.setFontSize(12);
+                doc.setFont("times", "bold");
+                doc.setTextColor(0, 102, 51); // Dark green
+                doc.text('Matériel nécessaire', margin, y);
+                y += 8;
+                
+                doc.setFontSize(9);
+                doc.setTextColor(0, 0, 0);
+                
+                this.data.materials.forEach(material => {
+                    doc.setFont("times", "normal");
+                    const total = material.quantity * material.price;
+                    doc.text(`${material.designation}`, margin, y);
+                    doc.text(`Qté: ${material.quantity}`, margin + 100, y);
+                    doc.text(`Prix: ${material.price.toFixed(2)} €`, margin + 130, y);
+                    doc.text(`Total: ${total.toFixed(2)} €`, margin + 160, y);
+                    y += 6;
+                });
+                
+                const grandTotal = this.data.materials.reduce((sum, m) => sum + (m.quantity * m.price), 0);
+                doc.setFont("times", "bold");
+                doc.text(`Total général: ${grandTotal.toFixed(2)} €`, margin + 140, y);
+                y += 10;
+            }
+            
+            // Section: Références
+            if (this.data.references && this.data.references.length > 0) {
+                if (y > 250) {
+                    doc.addPage();
+                    y = 20;
+                }
+                
+                doc.setFontSize(12);
+                doc.setFont("times", "bold");
+                doc.setTextColor(102, 51, 153); // Purple
+                doc.text('Liste de Références', margin, y);
+                y += 8;
+                
+                doc.setFontSize(9);
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("times", "normal");
+                
+                this.data.references.forEach(ref => {
+                    const refText = `${ref.document} - ${ref.page || 'N/A'} (${ref.type})`;
+                    const refLines = doc.splitTextToSize(refText, contentWidth);
+                    doc.text(refLines, margin, y);
+                    y += refLines.length * 5 + 2;
+                    
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                });
+                y += 5;
+            }
+            
+            // Section: Instructions de consignation
+            if (this.data.steps && this.data.steps.length > 0) {
+                if (y > 240) {
+                    doc.addPage();
+                    y = 20;
+                }
+                
+                doc.setFontSize(12);
+                doc.setFont("times", "bold");
+                doc.setTextColor(102, 51, 153); // Purple
+                doc.text('Instructions de consignation', margin, y);
+                y += 8;
+                
+                doc.setFontSize(9);
+                doc.setTextColor(0, 0, 0);
+                
+                this.data.steps.forEach((step, index) => {
+                    doc.setFont("times", "bold");
+                    doc.text(`${index + 1}. ${step.repere || 'Étape ' + (index + 1)}`, margin, y);
+                    y += 6;
+                    
+                    if (step.instruction) {
+                        doc.setFont("times", "normal");
+                        const instrLines = doc.splitTextToSize(step.instruction, contentWidth - 10);
+                        doc.text(instrLines, margin + 5, y);
+                        y += instrLines.length * 5 + 3;
+                    }
+                    
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                });
+                y += 5;
+            }
+            
+            // Section: Pistes d'amélioration
+            if (this.data.improvements && this.data.improvements.length > 0) {
+                if (y > 250) {
+                    doc.addPage();
+                    y = 20;
+                }
+                
+                doc.setFontSize(12);
+                doc.setFont("times", "bold");
+                doc.setTextColor(204, 153, 0); // Orange
+                doc.text('Pistes d\'amélioration', margin, y);
+                y += 8;
+                
+                doc.setFontSize(9);
+                doc.setTextColor(0, 0, 0);
+                doc.setFont("times", "normal");
+                
+                this.data.improvements.forEach(improvement => {
+                    doc.text(`• ${improvement}`, margin, y);
+                    y += 6;
+                    
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                });
+            }
+            
+            // Save the PDF
+            const filename = `Procedure-Consignation-${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(filename);
+            this.showNotification('✅ PDF généré avec succès!', 'success');
+            
+        } catch (error) {
+            console.error('Erreur lors de la génération PDF:', error);
+            this.showNotification('❌ Erreur lors de la génération du PDF', 'error');
+            // Fallback to browser print
+            window.print();
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        // Créer une notification temporaire
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#06b6d4'};
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            font-weight: 600;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+}
+
+// Ajouter les animations de notification
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Initialiser l'application
+let app;
+document.addEventListener('DOMContentLoaded', () => {
+    app = new ConsignmentProcedure();
+});
