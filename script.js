@@ -296,6 +296,7 @@ class ConsignmentProcedure {
             localStorage.setItem('consignmentProcedure', JSON.stringify(this.data));
         } catch (e) {
             console.error('Erreur lors de la sauvegarde:', e);
+            this.showNotification('⚠️ Impossible de sauvegarder automatiquement. Utilisez le bouton Enregistrer.', 'error');
         }
     }
 
@@ -303,10 +304,21 @@ class ConsignmentProcedure {
         try {
             const saved = localStorage.getItem('consignmentProcedure');
             if (saved) {
-                this.data = JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                // Validate data structure
+                if (parsed && typeof parsed === 'object') {
+                    this.data = {
+                        info: parsed.info || {},
+                        warnings: parsed.warnings || {},
+                        materials: Array.isArray(parsed.materials) ? parsed.materials : [],
+                        steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+                        improvements: Array.isArray(parsed.improvements) ? parsed.improvements : []
+                    };
+                }
             }
         } catch (e) {
             console.error('Erreur lors du chargement:', e);
+            this.showNotification('⚠️ Impossible de charger les données sauvegardées.', 'error');
         }
     }
 
@@ -316,7 +328,9 @@ class ConsignmentProcedure {
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `consignation-${this.data.info.numero || 'procedure'}-${new Date().toISOString().split('T')[0]}.json`;
+        // Sanitize filename to prevent invalid characters
+        const sanitizedNumero = (this.data.info.numero || 'procedure').replace(/[^a-z0-9_-]/gi, '_');
+        link.download = `consignation-${sanitizedNumero}-${new Date().toISOString().split('T')[0]}.json`;
         link.click();
         URL.revokeObjectURL(url);
         
@@ -333,10 +347,22 @@ class ConsignmentProcedure {
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     try {
-                        this.data = JSON.parse(event.target.result);
-                        this.updateDisplay();
-                        this.saveToStorage();
-                        this.showNotification('✅ Procédure chargée avec succès!', 'success');
+                        const parsed = JSON.parse(event.target.result);
+                        // Validate data structure before loading
+                        if (parsed && typeof parsed === 'object') {
+                            this.data = {
+                                info: parsed.info || {},
+                                warnings: parsed.warnings || {},
+                                materials: Array.isArray(parsed.materials) ? parsed.materials : [],
+                                steps: Array.isArray(parsed.steps) ? parsed.steps : [],
+                                improvements: Array.isArray(parsed.improvements) ? parsed.improvements : []
+                            };
+                            this.updateDisplay();
+                            this.saveToStorage();
+                            this.showNotification('✅ Procédure chargée avec succès!', 'success');
+                        } else {
+                            this.showNotification('❌ Format de fichier invalide', 'error');
+                        }
                     } catch (error) {
                         this.showNotification('❌ Erreur lors du chargement du fichier', 'error');
                         console.error('Erreur:', error);
