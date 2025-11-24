@@ -103,17 +103,23 @@ class ConsignmentProcedure {
         
         this.data.materials.forEach((material, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <span>${material}</span>
-                <button class="btn btn-danger btn-small" onclick="app.removeMaterial(${index})">Supprimer</button>
-            `;
+            const span = document.createElement('span');
+            span.textContent = material;
+            
+            const button = document.createElement('button');
+            button.className = 'btn btn-danger btn-small';
+            button.textContent = 'Supprimer';
+            button.onclick = () => this.removeMaterial(index);
+            
+            li.appendChild(span);
+            li.appendChild(button);
             list.appendChild(li);
         });
     }
 
     addStep() {
         const step = {
-            id: Date.now(),
+            id: crypto.randomUUID ? crypto.randomUUID() : `step-${Date.now()}-${Math.random()}`,
             repere: '',
             instruction: '',
             photo: ''
@@ -139,6 +145,13 @@ class ConsignmentProcedure {
 
     handlePhotoUpload(id, file) {
         if (file && file.type.startsWith('image/')) {
+            // Limit file size to 2MB to avoid localStorage issues
+            const maxSize = 2 * 1024 * 1024; // 2MB
+            if (file.size > maxSize) {
+                this.showNotification('❌ La photo est trop grande. Taille maximale: 2MB', 'error');
+                return;
+            }
+            
             const reader = new FileReader();
             reader.onload = (e) => {
                 this.updateStepData(id, 'photo', e.target.result);
@@ -155,36 +168,65 @@ class ConsignmentProcedure {
         this.data.steps.forEach((step, index) => {
             const row = document.createElement('div');
             row.className = 'step-row';
-            row.innerHTML = `
-                <div class="col-repere">
-                    <input type="text" 
-                           placeholder="Repère ${index + 1}" 
-                           value="${step.repere}"
-                           onchange="app.updateStepData(${step.id}, 'repere', this.value)">
-                </div>
-                <div class="col-instruction">
-                    <textarea 
-                        placeholder="Description de l'instruction..."
-                        onchange="app.updateStepData(${step.id}, 'instruction', this.value)"
-                    >${step.instruction}</textarea>
-                </div>
-                <div class="col-photo">
-                    <div class="photo-upload">
-                        ${step.photo ? `<img src="${step.photo}" class="photo-preview" alt="Photo">` : ''}
-                        <label class="photo-label">
-                            📷 ${step.photo ? 'Changer' : 'Ajouter'} photo
-                            <input type="file" 
-                                   accept="image/*" 
-                                   onchange="app.handlePhotoUpload(${step.id}, this.files[0])">
-                        </label>
-                    </div>
-                </div>
-                <div class="step-actions">
-                    <button class="btn btn-danger btn-small" onclick="app.removeStep(${step.id})">
-                        🗑️ Supprimer l'étape
-                    </button>
-                </div>
-            `;
+            
+            // Column: Repere
+            const colRepere = document.createElement('div');
+            colRepere.className = 'col-repere';
+            const inputRepere = document.createElement('input');
+            inputRepere.type = 'text';
+            inputRepere.placeholder = `Repère ${index + 1}`;
+            inputRepere.value = step.repere;
+            inputRepere.onchange = (e) => this.updateStepData(step.id, 'repere', e.target.value);
+            colRepere.appendChild(inputRepere);
+            
+            // Column: Instruction
+            const colInstruction = document.createElement('div');
+            colInstruction.className = 'col-instruction';
+            const textareaInstruction = document.createElement('textarea');
+            textareaInstruction.placeholder = "Description de l'instruction...";
+            textareaInstruction.value = step.instruction;
+            textareaInstruction.onchange = (e) => this.updateStepData(step.id, 'instruction', e.target.value);
+            colInstruction.appendChild(textareaInstruction);
+            
+            // Column: Photo
+            const colPhoto = document.createElement('div');
+            colPhoto.className = 'col-photo';
+            const photoUpload = document.createElement('div');
+            photoUpload.className = 'photo-upload';
+            
+            if (step.photo) {
+                const img = document.createElement('img');
+                img.src = step.photo;
+                img.className = 'photo-preview';
+                img.alt = 'Photo';
+                photoUpload.appendChild(img);
+            }
+            
+            const label = document.createElement('label');
+            label.className = 'photo-label';
+            label.textContent = `📷 ${step.photo ? 'Changer' : 'Ajouter'} photo`;
+            const inputFile = document.createElement('input');
+            inputFile.type = 'file';
+            inputFile.accept = 'image/*';
+            inputFile.onchange = (e) => this.handlePhotoUpload(step.id, e.target.files[0]);
+            label.appendChild(inputFile);
+            photoUpload.appendChild(label);
+            colPhoto.appendChild(photoUpload);
+            
+            // Actions
+            const stepActions = document.createElement('div');
+            stepActions.className = 'step-actions';
+            const btnDelete = document.createElement('button');
+            btnDelete.className = 'btn btn-danger btn-small';
+            btnDelete.textContent = '🗑️ Supprimer l\'étape';
+            btnDelete.onclick = () => this.removeStep(step.id);
+            stepActions.appendChild(btnDelete);
+            
+            // Append all columns
+            row.appendChild(colRepere);
+            row.appendChild(colInstruction);
+            row.appendChild(colPhoto);
+            row.appendChild(stepActions);
             tbody.appendChild(row);
         });
     }
@@ -213,10 +255,16 @@ class ConsignmentProcedure {
         
         this.data.improvements.forEach((improvement, index) => {
             const li = document.createElement('li');
-            li.innerHTML = `
-                <span>${improvement}</span>
-                <button class="btn btn-danger btn-small" onclick="app.removeImprovement(${index})">Supprimer</button>
-            `;
+            const span = document.createElement('span');
+            span.textContent = improvement;
+            
+            const button = document.createElement('button');
+            button.className = 'btn btn-danger btn-small';
+            button.textContent = 'Supprimer';
+            button.onclick = () => this.removeImprovement(index);
+            
+            li.appendChild(span);
+            li.appendChild(button);
             list.appendChild(li);
         });
     }
