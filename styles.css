@@ -449,6 +449,217 @@ footer {
     font-size: 0.9em;
 }
 
+/* EPI/EPC Suggestions */
+.epi-epc-input-container {
+    position: relative;
+}
+
+.suggestions-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+    box-shadow: var(--shadow-lg);
+    margin-top: 5px;
+}
+
+.suggestions-dropdown.show {
+    display: block;
+}
+
+.suggestion-category {
+    padding: 10px 15px;
+    background: var(--bg-secondary);
+    font-weight: 600;
+    color: var(--primary-color);
+    border-bottom: 1px solid #cbd5e1;
+}
+
+.suggestion-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color 0.2s;
+}
+
+.suggestion-item:hover {
+    background: var(--bg-secondary);
+}
+
+.suggestion-name {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+.suggestion-badges {
+    display: flex;
+    gap: 5px;
+}
+
+.badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    font-weight: 600;
+    color: white;
+}
+
+.badge-epi {
+    background: #64748b;
+}
+
+.badge-epc {
+    background: #475569;
+}
+
+.badge-electrique {
+    background: #eab308;
+    color: white;
+}
+
+.badge-mecanique {
+    background: #92400e;
+    color: white;
+}
+
+.badge-commun {
+    background: #dc2626;
+    color: white;
+}
+
+.epi-epc-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+    min-height: 40px;
+}
+
+.epi-epc-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: white;
+    border: 2px solid var(--bg-secondary);
+    border-radius: 8px;
+    font-size: 0.9em;
+}
+
+.epi-epc-tag .tag-name {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.epi-epc-tag .tag-remove {
+    cursor: pointer;
+    color: var(--danger-color);
+    font-weight: bold;
+    padding: 0 5px;
+    transition: transform 0.2s;
+}
+
+.epi-epc-tag .tag-remove:hover {
+    transform: scale(1.2);
+}
+
+/* Markdown preview */
+.markdown-support {
+    font-family: 'Courier New', monospace;
+}
+
+.markdown-preview {
+    margin-top: 10px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    display: none;
+}
+
+.markdown-preview.show {
+    display: block;
+}
+
+.markdown-preview ul {
+    margin-left: 20px;
+    list-style-type: disc;
+}
+
+.markdown-preview ol {
+    margin-left: 20px;
+}
+
+.markdown-preview strong {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.markdown-preview li {
+    margin: 5px 0;
+}
+
+/* Material table */
+.material-table {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid var(--bg-secondary);
+}
+
+.material-table-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.5fr 1.5fr 120px;
+    gap: 15px;
+    background: var(--success-color);
+    color: white;
+    font-weight: 600;
+    padding: 15px;
+}
+
+#material-table-body {
+    min-height: 50px;
+}
+
+.material-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.5fr 1.5fr 120px;
+    gap: 15px;
+    padding: 15px;
+    border-bottom: 1px solid var(--bg-secondary);
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.material-row:hover {
+    background: var(--bg-secondary);
+}
+
+.material-table-footer {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.5fr 1.5fr 120px;
+    gap: 15px;
+    padding: 15px;
+    background: #f0fdf4;
+    border-top: 2px solid var(--success-color);
+}
+
+.material-input-group {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1.5fr auto;
+    gap: 10px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .container {
@@ -479,6 +690,23 @@ footer {
 
     .btn {
         width: 100%;
+    }
+    
+    .material-input-group {
+        grid-template-columns: 1fr;
+    }
+    
+    .material-table-header,
+    .material-row,
+    .material-table-footer {
+        grid-template-columns: 1fr;
+        gap: 5px;
+    }
+    
+    .material-table-header > div:not(:first-child),
+    .material-table-footer > div:nth-child(1),
+    .material-table-footer > div:nth-child(2) {
+        display: none;
     }
 }
 

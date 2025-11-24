@@ -5,10 +5,65 @@ class ConsignmentProcedure {
             info: {},
             warnings: {},
             materials: [],
+            epiEpc: [],
             steps: [],
             improvements: []
         };
+        this.epiEpcSuggestions = this.initEpiEpcSuggestions();
         this.init();
+    }
+    
+    initEpiEpcSuggestions() {
+        return {
+            'EPI': {
+                'électrique': [
+                    'Casque isolant',
+                    'Lunettes isolantes',
+                    'Gants isolants',
+                    'Écran facial isolant',
+                    'Vêtements isolants',
+                    'Chaussures isolantes'
+                ],
+                'mécanique': [
+                    'Casque de chantier',
+                    'Lunettes de protection',
+                    'Gants anti-coupure',
+                    'Protections auditives',
+                    'Masque respiratoire',
+                    'Harnais de sécurité'
+                ],
+                'commun': [
+                    'Chaussures de sécurité',
+                    'Gilet haute visibilité',
+                    'Vêtements de travail',
+                    'Gants de manutention'
+                ]
+            },
+            'EPC': {
+                'électrique': [
+                    'Appareil de test VAT',
+                    'Tapis isolant',
+                    'Nappe isolante',
+                    'Cadenas de consignation électrique',
+                    'Dispositif de mise à la terre',
+                    'Pancarte de consignation'
+                ],
+                'mécanique': [
+                    'Protecteur de machine',
+                    'Garde-corps',
+                    'Filet de sécurité',
+                    'Barrières de protection'
+                ],
+                'commun': [
+                    'Serrure de consignation',
+                    'Barrières de sécurité',
+                    'Signalisation de sécurité',
+                    'Extincteur',
+                    'Trousse de premiers secours',
+                    'Éclairage de sécurité'
+                ]
+            }
+        };
     }
 
     init() {
@@ -19,7 +74,7 @@ class ConsignmentProcedure {
 
     setupEventListeners() {
         // Informations sur l'intervention
-        const infoFields = ['date', 'numero', 'personnel', 'localisation', 'epi-epc'];
+        const infoFields = ['titre', 'description', 'date', 'numero', 'personnel', 'localisation'];
         infoFields.forEach(field => {
             const element = document.getElementById(field);
             if (element) {
@@ -27,21 +82,51 @@ class ConsignmentProcedure {
                 element.addEventListener('input', () => this.saveInfo());
             }
         });
-
-        // Avertissements
+        
+        // EPI/EPC suggestions
+        const epiEpcInput = document.getElementById('epi-epc-input');
+        if (epiEpcInput) {
+            epiEpcInput.addEventListener('input', (e) => this.handleEpiEpcInput(e));
+            epiEpcInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const firstSuggestion = document.querySelector('.suggestion-item');
+                    if (firstSuggestion) {
+                        firstSuggestion.click();
+                    }
+                } else if (e.key === 'Escape') {
+                    this.hideSuggestions();
+                }
+            });
+        }
+        
+        // Close suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+            const container = document.querySelector('.epi-epc-input-container');
+            if (container && !container.contains(e.target)) {
+                this.hideSuggestions();
+            }
+        });
+        
+        // Avertissements with markdown support
         const warningFields = ['danger', 'analyse-risques'];
         warningFields.forEach(field => {
             const element = document.getElementById(field);
             if (element) {
                 element.addEventListener('change', () => this.saveWarnings());
-                element.addEventListener('input', () => this.saveWarnings());
+                element.addEventListener('input', () => {
+                    this.saveWarnings();
+                    this.updateMarkdownPreview(field);
+                });
             }
         });
 
         // Matériel nécessaire
         document.getElementById('add-material-btn').addEventListener('click', () => this.addMaterial());
-        document.getElementById('new-material').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.addMaterial();
+        ['new-material-designation', 'new-material-quantity', 'new-material-price'].forEach(id => {
+            document.getElementById(id).addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.addMaterial();
+            });
         });
 
         // Instructions de consignation
@@ -62,13 +147,220 @@ class ConsignmentProcedure {
 
     saveInfo() {
         this.data.info = {
+            titre: document.getElementById('titre').value,
+            description: document.getElementById('description').value,
             date: document.getElementById('date').value,
             numero: document.getElementById('numero').value,
             personnel: document.getElementById('personnel').value,
-            localisation: document.getElementById('localisation').value,
-            epiEpc: document.getElementById('epi-epc').value
+            localisation: document.getElementById('localisation').value
         };
         this.saveToStorage();
+    }
+    
+    handleEpiEpcInput(e) {
+        const query = e.target.value.toLowerCase().trim();
+        const suggestionsDiv = document.getElementById('epi-epc-suggestions');
+        
+        if (query.length < 2) {
+            this.hideSuggestions();
+            return;
+        }
+        
+        const matches = [];
+        Object.keys(this.epiEpcSuggestions).forEach(type => {
+            Object.keys(this.epiEpcSuggestions[type]).forEach(category => {
+                this.epiEpcSuggestions[type][category].forEach(item => {
+                    if (item.toLowerCase().includes(query)) {
+                        matches.push({ type, category, name: item });
+                    }
+                });
+            });
+        });
+        
+        if (matches.length > 0) {
+            this.showSuggestions(matches);
+        } else {
+            this.hideSuggestions();
+        }
+    }
+    
+    showSuggestions(matches) {
+        const suggestionsDiv = document.getElementById('epi-epc-suggestions');
+        suggestionsDiv.innerHTML = '';
+        
+        // Group by type and category
+        const grouped = {};
+        matches.forEach(match => {
+            const key = `${match.type}-${match.category}`;
+            if (!grouped[key]) {
+                grouped[key] = {
+                    type: match.type,
+                    category: match.category,
+                    items: []
+                };
+            }
+            grouped[key].items.push(match.name);
+        });
+        
+        Object.values(grouped).forEach(group => {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'suggestion-category';
+            categoryDiv.textContent = `${group.type} - ${group.category}`;
+            suggestionsDiv.appendChild(categoryDiv);
+            
+            group.items.forEach(itemName => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'suggestion-item';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'suggestion-name';
+                nameSpan.textContent = itemName;
+                
+                const badgesDiv = document.createElement('div');
+                badgesDiv.className = 'suggestion-badges';
+                
+                const typeBadge = document.createElement('span');
+                typeBadge.className = `badge badge-${group.type.toLowerCase()}`;
+                typeBadge.textContent = group.type;
+                
+                const catBadge = document.createElement('span');
+                catBadge.className = `badge badge-${group.category}`;
+                catBadge.textContent = group.category;
+                
+                badgesDiv.appendChild(typeBadge);
+                badgesDiv.appendChild(catBadge);
+                
+                itemDiv.appendChild(nameSpan);
+                itemDiv.appendChild(badgesDiv);
+                
+                itemDiv.addEventListener('click', () => {
+                    this.addEpiEpc(itemName, group.type, group.category);
+                    document.getElementById('epi-epc-input').value = '';
+                    this.hideSuggestions();
+                });
+                
+                suggestionsDiv.appendChild(itemDiv);
+            });
+        });
+        
+        suggestionsDiv.classList.add('show');
+    }
+    
+    hideSuggestions() {
+        const suggestionsDiv = document.getElementById('epi-epc-suggestions');
+        suggestionsDiv.classList.remove('show');
+    }
+    
+    addEpiEpc(name, type, category) {
+        // Check if already added
+        const exists = this.data.epiEpc.find(item => item.name === name);
+        if (exists) {
+            this.showNotification('⚠️ Cet équipement est déjà dans la liste', 'info');
+            return;
+        }
+        
+        this.data.epiEpc.push({ name, type, category });
+        this.updateEpiEpcList();
+        this.saveToStorage();
+    }
+    
+    removeEpiEpc(index) {
+        this.data.epiEpc.splice(index, 1);
+        this.updateEpiEpcList();
+        this.saveToStorage();
+    }
+    
+    updateEpiEpcList() {
+        const list = document.getElementById('epi-epc-list');
+        list.innerHTML = '';
+        
+        this.data.epiEpc.forEach((item, index) => {
+            const tag = document.createElement('div');
+            tag.className = 'epi-epc-tag';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'tag-name';
+            nameSpan.textContent = item.name;
+            
+            const badgesDiv = document.createElement('div');
+            badgesDiv.className = 'suggestion-badges';
+            
+            const typeBadge = document.createElement('span');
+            typeBadge.className = `badge badge-${item.type.toLowerCase()}`;
+            typeBadge.textContent = item.type;
+            
+            const catBadge = document.createElement('span');
+            catBadge.className = `badge badge-${item.category}`;
+            catBadge.textContent = item.category;
+            
+            badgesDiv.appendChild(typeBadge);
+            badgesDiv.appendChild(catBadge);
+            
+            const removeSpan = document.createElement('span');
+            removeSpan.className = 'tag-remove';
+            removeSpan.textContent = '×';
+            removeSpan.onclick = () => this.removeEpiEpc(index);
+            
+            tag.appendChild(nameSpan);
+            tag.appendChild(badgesDiv);
+            tag.appendChild(removeSpan);
+            list.appendChild(tag);
+        });
+    }
+    
+    updateMarkdownPreview(fieldId) {
+        const textarea = document.getElementById(fieldId);
+        const preview = document.getElementById(`${fieldId}-preview`);
+        
+        if (!textarea || !preview) return;
+        
+        const text = textarea.value;
+        if (!text.trim()) {
+            preview.classList.remove('show');
+            return;
+        }
+        
+        // Simple markdown parsing
+        let html = text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        // Convert lists
+        const lines = html.split('\n');
+        let inList = false;
+        let result = [];
+        
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+                if (!inList) {
+                    result.push('<ul>');
+                    inList = true;
+                }
+                result.push(`<li>${trimmed.substring(1).trim()}</li>`);
+            } else if (trimmed.match(/^\d+\./)) {
+                if (!inList) {
+                    result.push('<ol>');
+                    inList = true;
+                }
+                result.push(`<li>${trimmed.replace(/^\d+\./, '').trim()}</li>`);
+            } else {
+                if (inList) {
+                    result.push('</ul>');
+                    inList = false;
+                }
+                if (trimmed) {
+                    result.push(`<p>${trimmed}</p>`);
+                }
+            }
+        });
+        
+        if (inList) {
+            result.push('</ul>');
+        }
+        
+        preview.innerHTML = result.join('');
+        preview.classList.add('show');
     }
 
     saveWarnings() {
@@ -80,15 +372,27 @@ class ConsignmentProcedure {
     }
 
     addMaterial() {
-        const input = document.getElementById('new-material');
-        const material = input.value.trim();
+        const designation = document.getElementById('new-material-designation').value.trim();
+        const quantity = parseInt(document.getElementById('new-material-quantity').value) || 1;
+        const price = parseFloat(document.getElementById('new-material-price').value) || 0;
         
-        if (material) {
-            this.data.materials.push(material);
-            input.value = '';
-            this.updateMaterialList();
-            this.saveToStorage();
+        if (!designation) {
+            this.showNotification('⚠️ Veuillez entrer une désignation', 'error');
+            return;
         }
+        
+        this.data.materials.push({
+            designation,
+            quantity,
+            price
+        });
+        
+        document.getElementById('new-material-designation').value = '';
+        document.getElementById('new-material-quantity').value = '1';
+        document.getElementById('new-material-price').value = '';
+        
+        this.updateMaterialList();
+        this.saveToStorage();
     }
 
     removeMaterial(index) {
@@ -98,23 +402,46 @@ class ConsignmentProcedure {
     }
 
     updateMaterialList() {
-        const list = document.getElementById('material-list');
-        list.innerHTML = '';
+        const tbody = document.getElementById('material-table-body');
+        tbody.innerHTML = '';
+        
+        let total = 0;
         
         this.data.materials.forEach((material, index) => {
-            const li = document.createElement('li');
-            const span = document.createElement('span');
-            span.textContent = material;
+            const row = document.createElement('div');
+            row.className = 'material-row';
             
-            const button = document.createElement('button');
-            button.className = 'btn btn-danger btn-small';
-            button.textContent = 'Supprimer';
-            button.onclick = () => this.removeMaterial(index);
+            const designationDiv = document.createElement('div');
+            designationDiv.textContent = material.designation;
             
-            li.appendChild(span);
-            li.appendChild(button);
-            list.appendChild(li);
+            const quantityDiv = document.createElement('div');
+            quantityDiv.textContent = material.quantity;
+            
+            const priceDiv = document.createElement('div');
+            priceDiv.textContent = `${material.price.toFixed(2)} €`;
+            
+            const totalDiv = document.createElement('div');
+            const itemTotal = material.quantity * material.price;
+            totalDiv.textContent = `${itemTotal.toFixed(2)} €`;
+            total += itemTotal;
+            
+            const actionsDiv = document.createElement('div');
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger btn-small';
+            deleteBtn.textContent = 'Supprimer';
+            deleteBtn.onclick = () => this.removeMaterial(index);
+            actionsDiv.appendChild(deleteBtn);
+            
+            row.appendChild(designationDiv);
+            row.appendChild(quantityDiv);
+            row.appendChild(priceDiv);
+            row.appendChild(totalDiv);
+            row.appendChild(actionsDiv);
+            
+            tbody.appendChild(row);
         });
+        
+        document.getElementById('material-total').innerHTML = `<strong>${total.toFixed(2)} €</strong>`;
     }
 
     addStep() {
@@ -285,20 +612,26 @@ class ConsignmentProcedure {
     updateDisplay() {
         // Charger les informations
         if (this.data.info) {
+            document.getElementById('titre').value = this.data.info.titre || '';
+            document.getElementById('description').value = this.data.info.description || '';
             document.getElementById('date').value = this.data.info.date || '';
             document.getElementById('numero').value = this.data.info.numero || '';
             document.getElementById('personnel').value = this.data.info.personnel || '';
             document.getElementById('localisation').value = this.data.info.localisation || '';
-            document.getElementById('epi-epc').value = this.data.info.epiEpc || '';
         }
 
         // Charger les avertissements
         if (this.data.warnings) {
             document.getElementById('danger').value = this.data.warnings.danger || '';
             document.getElementById('analyse-risques').value = this.data.warnings.analyseRisques || '';
+            
+            // Update markdown previews
+            this.updateMarkdownPreview('danger');
+            this.updateMarkdownPreview('analyse-risques');
         }
 
         // Afficher les listes
+        this.updateEpiEpcList();
         this.updateMaterialList();
         this.updateStepsList();
         this.updateImprovementList();
@@ -324,6 +657,7 @@ class ConsignmentProcedure {
                         info: parsed.info || {},
                         warnings: parsed.warnings || {},
                         materials: Array.isArray(parsed.materials) ? parsed.materials : [],
+                        epiEpc: Array.isArray(parsed.epiEpc) ? parsed.epiEpc : [],
                         steps: Array.isArray(parsed.steps) ? parsed.steps : [],
                         improvements: Array.isArray(parsed.improvements) ? parsed.improvements : []
                     };
@@ -367,6 +701,7 @@ class ConsignmentProcedure {
                                 info: parsed.info || {},
                                 warnings: parsed.warnings || {},
                                 materials: Array.isArray(parsed.materials) ? parsed.materials : [],
+                                epiEpc: Array.isArray(parsed.epiEpc) ? parsed.epiEpc : [],
                                 steps: Array.isArray(parsed.steps) ? parsed.steps : [],
                                 improvements: Array.isArray(parsed.improvements) ? parsed.improvements : []
                             };
@@ -393,6 +728,7 @@ class ConsignmentProcedure {
                 info: {},
                 warnings: {},
                 materials: [],
+                epiEpc: [],
                 steps: [],
                 improvements: []
             };

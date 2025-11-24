@@ -17,6 +17,14 @@
         <section class="card info-section">
             <h2>📝 Informations sur l'intervention</h2>
             <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="titre">Titre :</label>
+                    <input type="text" id="titre" class="form-control" placeholder="Titre de l'intervention">
+                </div>
+                <div class="form-group full-width">
+                    <label for="description">Description :</label>
+                    <textarea id="description" class="form-control" rows="3" placeholder="Description détaillée de l'intervention"></textarea>
+                </div>
                 <div class="form-group">
                     <label for="date">Date :</label>
                     <input type="date" id="date" class="form-control">
@@ -35,7 +43,11 @@
                 </div>
                 <div class="form-group full-width">
                     <label for="epi-epc">EPI/EPC requis :</label>
-                    <textarea id="epi-epc" class="form-control" rows="2" placeholder="Liste des équipements de protection individuelle/collective"></textarea>
+                    <div class="epi-epc-input-container">
+                        <input type="text" id="epi-epc-input" class="form-control" placeholder="Commencer à taper pour voir les suggestions..." autocomplete="off">
+                        <div id="epi-epc-suggestions" class="suggestions-dropdown"></div>
+                    </div>
+                    <div id="epi-epc-list" class="epi-epc-list"></div>
                 </div>
             </div>
         </section>
@@ -46,11 +58,13 @@
             <div class="warning-content">
                 <div class="danger-box">
                     <h3>🚨 Danger</h3>
-                    <textarea id="danger" class="form-control" rows="3" placeholder="Décrire les dangers identifiés..."></textarea>
+                    <textarea id="danger" class="form-control markdown-support" rows="8" placeholder="Décrire les dangers identifiés...&#10;&#10;Exemple (markdown supporté):&#10;- Tension électrique 400V&#10;- Risque d'électrocution&#10;- Zone de travail en hauteur"></textarea>
+                    <div id="danger-preview" class="markdown-preview"></div>
                 </div>
                 <div class="risk-box">
                     <h3>🔍 Analyse de risques</h3>
-                    <textarea id="analyse-risques" class="form-control" rows="5" placeholder="Analyse détaillée des risques..."></textarea>
+                    <textarea id="analyse-risques" class="form-control markdown-support" rows="10" placeholder="Analyse détaillée des risques...&#10;&#10;Exemple (markdown supporté):&#10;- **Risque électrique**: Nécessite consignation complète&#10;- **Mesures préventives**:&#10;  - Vérifier VAT avant intervention&#10;  - Porter EPI électrique adapté&#10;  - Installer signalisation de sécurité"></textarea>
+                    <div id="analyse-risques-preview" class="markdown-preview"></div>
                 </div>
             </div>
         </section>
@@ -59,10 +73,28 @@
         <section class="card material-section">
             <h2>🔧 Matériel nécessaire</h2>
             <div class="material-input-group">
-                <input type="text" id="new-material" class="form-control" placeholder="Ajouter un élément...">
+                <input type="text" id="new-material-designation" class="form-control" placeholder="Désignation">
+                <input type="number" id="new-material-quantity" class="form-control" placeholder="Nombre" min="1" value="1">
+                <input type="number" id="new-material-price" class="form-control" placeholder="Prix Unitaire HT (€)" min="0" step="0.01">
                 <button id="add-material-btn" class="btn btn-primary">Ajouter</button>
             </div>
-            <ul id="material-list" class="material-list"></ul>
+            <div id="material-list" class="material-table">
+                <div class="material-table-header">
+                    <div>Désignation</div>
+                    <div>Nombre</div>
+                    <div>Prix Unitaire HT</div>
+                    <div>Total HT</div>
+                    <div>Actions</div>
+                </div>
+                <div id="material-table-body"></div>
+                <div class="material-table-footer">
+                    <div></div>
+                    <div></div>
+                    <div><strong>Total:</strong></div>
+                    <div id="material-total"><strong>0,00 €</strong></div>
+                    <div></div>
+                </div>
+            </div>
         </section>
 
         <!-- Instructions de consignation -->
