@@ -1115,7 +1115,7 @@ class ConsignmentProcedure {
             }
             
             // Save the PDF
-            const filename = `Procedure_Consignation_${new Date().toISOString().split('T')[0]}.pdf`;
+            const filename = `Procedure-Consignation-${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(filename);
             this.showNotification('✅ PDF généré avec succès!', 'success');
             
