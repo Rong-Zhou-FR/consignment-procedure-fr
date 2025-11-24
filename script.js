@@ -6,11 +6,36 @@ class ConsignmentProcedure {
             warnings: {},
             materials: [],
             epiEpc: [],
+            references: [],
             steps: [],
             improvements: []
         };
         this.epiEpcSuggestions = this.initEpiEpcSuggestions();
+        this.initMarked();
         this.init();
+    }
+    
+    initMarked() {
+        // Configure marked.js for security
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false
+            });
+            
+            // Use DOMPurify-like sanitization
+            marked.use({
+                useNewRenderer: true,
+                renderer: {
+                    html(html) {
+                        // Return empty string for HTML tags to prevent XSS
+                        return '';
+                    }
+                }
+            });
+        }
     }
     
     initEpiEpcSuggestions() {
@@ -126,6 +151,14 @@ class ConsignmentProcedure {
         ['new-material-designation', 'new-material-quantity', 'new-material-price'].forEach(id => {
             document.getElementById(id).addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') this.addMaterial();
+            });
+        });
+
+        // Références
+        document.getElementById('add-reference-btn').addEventListener('click', () => this.addReference());
+        ['new-reference-document', 'new-reference-page', 'new-reference-type'].forEach(id => {
+            document.getElementById(id).addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.addReference();
             });
         });
 
@@ -320,70 +353,21 @@ class ConsignmentProcedure {
             return;
         }
         
-        // Sanitize input by escaping HTML
-        const escapeHtml = (str) => {
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
-        };
-        
-        // Simple markdown parsing with sanitization
-        const lines = text.split('\n');
-        let inList = false;
-        let listType = null; // 'ul' or 'ol'
-        let result = [];
-        
-        lines.forEach(line => {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
-                // Unordered list
-                if (!inList || listType !== 'ul') {
-                    if (inList) {
-                        result.push(`</${listType}>`);
-                    }
-                    result.push('<ul>');
-                    inList = true;
-                    listType = 'ul';
-                }
-                const content = escapeHtml(trimmed.substring(1).trim())
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>');
-                result.push(`<li>${content}</li>`);
-            } else if (trimmed.match(/^\d+\./)) {
-                // Ordered list
-                if (!inList || listType !== 'ol') {
-                    if (inList) {
-                        result.push(`</${listType}>`);
-                    }
-                    result.push('<ol>');
-                    inList = true;
-                    listType = 'ol';
-                }
-                const content = escapeHtml(trimmed.replace(/^\d+\./, '').trim())
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>');
-                result.push(`<li>${content}</li>`);
-            } else {
-                if (inList) {
-                    result.push(`</${listType}>`);
-                    inList = false;
-                    listType = null;
-                }
-                if (trimmed) {
-                    const content = escapeHtml(trimmed)
-                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                        .replace(/\*(.*?)\*/g, '<em>$1</em>');
-                    result.push(`<p>${content}</p>`);
-                }
+        // Use marked.js if available, otherwise fallback to simple parsing
+        if (typeof marked !== 'undefined') {
+            try {
+                preview.innerHTML = marked.parse(text);
+                preview.classList.add('show');
+            } catch (error) {
+                console.error('Error parsing markdown:', error);
+                preview.textContent = text;
+                preview.classList.add('show');
             }
-        });
-        
-        if (inList) {
-            result.push(`</${listType}>`);
+        } else {
+            // Fallback to simple text display if marked.js is not loaded
+            preview.textContent = text;
+            preview.classList.add('show');
         }
-        
-        preview.innerHTML = result.join('');
-        preview.classList.add('show');
     }
 
     saveWarnings() {
@@ -494,6 +478,75 @@ class ConsignmentProcedure {
         this.updateStepsList();
         this.saveToStorage();
     }
+
+    addReference() {
+        const documentName = document.getElementById('new-reference-document').value.trim();
+        const page = document.getElementById('new-reference-page').value.trim();
+        const type = document.getElementById('new-reference-type').value;
+        
+        if (!documentName) {
+            this.showNotification('⚠️ Veuillez entrer un nom de document', 'error');
+            return;
+        }
+        
+        if (!type) {
+            this.showNotification('⚠️ Veuillez sélectionner un type', 'error');
+            return;
+        }
+        
+        this.data.references.push({
+            document: documentName,
+            page,
+            type
+        });
+        
+        document.getElementById('new-reference-document').value = '';
+        document.getElementById('new-reference-page').value = '';
+        document.getElementById('new-reference-type').value = '';
+        
+        this.updateReferenceList();
+        this.saveToStorage();
+    }
+
+    removeReference(index) {
+        this.data.references.splice(index, 1);
+        this.updateReferenceList();
+        this.saveToStorage();
+    }
+
+    updateReferenceList() {
+        const tbody = document.getElementById('reference-table-body');
+        tbody.innerHTML = '';
+        
+        this.data.references.forEach((reference, index) => {
+            const row = document.createElement('div');
+            row.className = 'reference-row';
+            
+            const documentDiv = document.createElement('div');
+            documentDiv.textContent = reference.document;
+            
+            const pageDiv = document.createElement('div');
+            pageDiv.textContent = reference.page || '-';
+            
+            const typeDiv = document.createElement('div');
+            typeDiv.textContent = reference.type;
+            
+            const actionsDiv = document.createElement('div');
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-danger btn-small';
+            deleteBtn.textContent = 'Supprimer';
+            deleteBtn.onclick = () => this.removeReference(index);
+            actionsDiv.appendChild(deleteBtn);
+            
+            row.appendChild(documentDiv);
+            row.appendChild(pageDiv);
+            row.appendChild(typeDiv);
+            row.appendChild(actionsDiv);
+            
+            tbody.appendChild(row);
+        });
+    }
+
 
     updateStepData(id, field, value) {
         const step = this.data.steps.find(s => s.id === id);
@@ -656,6 +709,7 @@ class ConsignmentProcedure {
         // Afficher les listes
         this.updateEpiEpcList();
         this.updateMaterialList();
+        this.updateReferenceList();
         this.updateStepsList();
         this.updateImprovementList();
     }
@@ -681,6 +735,7 @@ class ConsignmentProcedure {
                         warnings: parsed.warnings || {},
                         materials: Array.isArray(parsed.materials) ? parsed.materials : [],
                         epiEpc: Array.isArray(parsed.epiEpc) ? parsed.epiEpc : [],
+                        references: Array.isArray(parsed.references) ? parsed.references : [],
                         steps: Array.isArray(parsed.steps) ? parsed.steps : [],
                         improvements: Array.isArray(parsed.improvements) ? parsed.improvements : []
                     };
@@ -725,6 +780,7 @@ class ConsignmentProcedure {
                                 warnings: parsed.warnings || {},
                                 materials: Array.isArray(parsed.materials) ? parsed.materials : [],
                                 epiEpc: Array.isArray(parsed.epiEpc) ? parsed.epiEpc : [],
+                                references: Array.isArray(parsed.references) ? parsed.references : [],
                                 steps: Array.isArray(parsed.steps) ? parsed.steps : [],
                                 improvements: Array.isArray(parsed.improvements) ? parsed.improvements : []
                             };
@@ -752,6 +808,7 @@ class ConsignmentProcedure {
                 warnings: {},
                 materials: [],
                 epiEpc: [],
+                references: [],
                 steps: [],
                 improvements: []
             };

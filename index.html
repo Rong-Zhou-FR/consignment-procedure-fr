@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Procédure de Consignation</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -94,6 +95,33 @@
                     <div id="material-total"><strong>0,00 €</strong></div>
                     <div></div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Liste de Références -->
+        <section class="card references-section">
+            <h2>📚 Liste de Références</h2>
+            <div class="reference-input-group">
+                <input type="text" id="new-reference-document" class="form-control" placeholder="Document">
+                <input type="text" id="new-reference-page" class="form-control" placeholder="Page">
+                <select id="new-reference-type" class="form-control">
+                    <option value="">Sélectionner le type...</option>
+                    <option value="Instructions, notes, guides">Instructions, notes, guides</option>
+                    <option value="Dossier technique">Dossier technique</option>
+                    <option value="Règlement intérieur">Règlement intérieur</option>
+                    <option value="Normes national">Normes national</option>
+                    <option value="Normes international">Normes international</option>
+                </select>
+                <button id="add-reference-btn" class="btn btn-primary">Ajouter</button>
+            </div>
+            <div id="reference-list" class="reference-table">
+                <div class="reference-table-header">
+                    <div>Document</div>
+                    <div>Page</div>
+                    <div>Type</div>
+                    <div>Actions</div>
+                </div>
+                <div id="reference-table-body"></div>
             </div>
         </section>
 
