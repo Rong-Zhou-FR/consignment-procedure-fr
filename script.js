@@ -320,43 +320,66 @@ class ConsignmentProcedure {
             return;
         }
         
-        // Simple markdown parsing
-        let html = text
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        // Sanitize input by escaping HTML
+        const escapeHtml = (str) => {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        };
         
-        // Convert lists
-        const lines = html.split('\n');
+        // Simple markdown parsing with sanitization
+        const lines = text.split('\n');
         let inList = false;
+        let listType = null; // 'ul' or 'ol'
         let result = [];
         
         lines.forEach(line => {
             const trimmed = line.trim();
             if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
-                if (!inList) {
+                // Unordered list
+                if (!inList || listType !== 'ul') {
+                    if (inList) {
+                        result.push(`</${listType}>`);
+                    }
                     result.push('<ul>');
                     inList = true;
+                    listType = 'ul';
                 }
-                result.push(`<li>${trimmed.substring(1).trim()}</li>`);
+                const content = escapeHtml(trimmed.substring(1).trim())
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                result.push(`<li>${content}</li>`);
             } else if (trimmed.match(/^\d+\./)) {
-                if (!inList) {
+                // Ordered list
+                if (!inList || listType !== 'ol') {
+                    if (inList) {
+                        result.push(`</${listType}>`);
+                    }
                     result.push('<ol>');
                     inList = true;
+                    listType = 'ol';
                 }
-                result.push(`<li>${trimmed.replace(/^\d+\./, '').trim()}</li>`);
+                const content = escapeHtml(trimmed.replace(/^\d+\./, '').trim())
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                result.push(`<li>${content}</li>`);
             } else {
                 if (inList) {
-                    result.push('</ul>');
+                    result.push(`</${listType}>`);
                     inList = false;
+                    listType = null;
                 }
                 if (trimmed) {
-                    result.push(`<p>${trimmed}</p>`);
+                    const content = escapeHtml(trimmed)
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                    result.push(`<p>${content}</p>`);
                 }
             }
         });
         
         if (inList) {
-            result.push('</ul>');
+            result.push(`</${listType}>`);
         }
         
         preview.innerHTML = result.join('');
