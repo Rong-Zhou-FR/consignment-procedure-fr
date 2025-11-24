@@ -100,7 +100,8 @@ class ConsignmentProcedure {
                     'Protecteur de machine',
                     'Garde-corps',
                     'Filet de sécurité',
-                    'Barrières de protection'
+                    'Barrières de protection',
+                    'Barre de consignation'
                 ],
                 'commun': [
                     'Serrure de consignation',

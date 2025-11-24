@@ -52,4 +52,4 @@ Le bouton "Imprimer" optimise l'affichage pour l'impression en supprimant les bo
 
 ## 📄 License
 
-MIT License - Voir le fichier LICENSE pour plus de détails.
+GNU public Affero 3.0 License - Voir le fichier LICENSE pour plus de détails.
