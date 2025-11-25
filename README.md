@@ -1,3 +1,4 @@
+> This app is already merged into [Industro](https://github.com/Rong-Zhou-FR/Industro/). This repository will no longer be updated or maintained.
 # Procédure de Consignation - Application Web
 
 Application web pour créer et gérer des procédures de consignation en français.
